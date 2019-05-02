@@ -11,6 +11,7 @@ namespace ShortestPathReplyCodeChallenge2019
         public int Id { get; }
         public Coordinate Coo {get;}
         public int Reward { get; }
+        public int RealReward { get; set; }
 
         public Customer(int id, Coordinate coo, int reward)
         {
@@ -18,5 +19,6 @@ namespace ShortestPathReplyCodeChallenge2019
             Coo = coo;
             Reward = reward;
         }
+
     }
 }

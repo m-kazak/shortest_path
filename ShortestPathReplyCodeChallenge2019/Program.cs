@@ -10,16 +10,27 @@ namespace ShortestPathReplyCodeChallenge2019
     {
         static void Main(string[] args)
         {
-            Parser parser = new Parser();
-            Map map = parser.GetParsedMap("1_victoria_lake.txt");
-            PathFinder finder = new PathFinder();
-
-            var rr = finder.FindRoutes(map, map.Customers);
-            Console.WriteLine(rr.Count);
-            rr.OrderByDescending(o => o.Reward).ToList();
+            RunProgram("1_victoria_lake");
+            RunProgram("2_himalayas");
+            RunProgram("3_budapest");
+            RunProgram("4_manhattan");
+            RunProgram("5_oceania");
 
             Console.WriteLine("Completed! Press any key");
             Console.ReadLine();
+        }
+
+        static public void RunProgram(String fileName)
+        {
+            Parser parser = new Parser();
+            Map map = parser.GetParsedMap(fileName + ".txt");
+            RouteFinder finder = new RouteFinder();
+
+            //map.DrawCharMap();
+
+            var r = finder.FindRoutes(map);
+
+            Output.OutputFile(r, fileName + "_answer.txt");
         }
 
     }

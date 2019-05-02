@@ -8,30 +8,6 @@ namespace ShortestPathReplyCodeChallenge2019
 {
     class PathFinder
     {
-        //Find routes to all accessable customers from all coordinates
-        public List<Route> FindRoutes(Map map, List<Customer> customers)
-        {
-            List<Coordinate> coordinates = map.AvailableCoordinates();
-            List<Route> routes = new List<Route>();
-
-            foreach (var coo in coordinates)
-            {
-                var cells = DrawCellMap(map, coo);
-
-                List<Path> paths = new List<Path>();
-                foreach (var cus in customers)
-                {
-                    var coos = RestoreWay(cells, cus, coo);
-                    if (coos.Count > 0)
-                        paths.Add(new Path(coos, cus, cells[cus.Coo.X, cus.Coo.Y].Cost));
-                }
-
-                routes.Add(new Route(coo, paths));
-            }
-
-            return routes;
-        }
-
         //Draw cost to each cell from 1 coordinate
         public Cell[,] DrawCellMap(Map map, Coordinate coo)
         {
@@ -130,7 +106,7 @@ namespace ShortestPathReplyCodeChallenge2019
         }
 
         //Possible ways from coordinate. Exclude out of map and mountains.
-        private List<Coordinate> PossibleWays(Map map, Coordinate coo)
+        public List<Coordinate> PossibleWays(Map map, Coordinate coo)
         {
             List<Coordinate> coordinates = new List<Coordinate>();
 
@@ -145,6 +121,45 @@ namespace ShortestPathReplyCodeChallenge2019
 
             return coordinates;
         }
-        
+
+        //Find one-step coordinates for allocation Reply office
+        public List<Coordinate> OneStepCoordinates(Map map, Coordinate coo)
+        {
+            List<Coordinate> coordinates = new List<Coordinate>();
+
+            //Manhattan
+            if (coo.X + 1 < map.N && map.CharMap[coo.X + 1, coo.Y] != '#' && map.CharMap[coo.X + 1, coo.Y] != 'C')
+                coordinates.Add(new Coordinate(coo.X + 1, coo.Y));
+            if (coo.X - 1 >= 0 && map.CharMap[coo.X - 1, coo.Y] != '#' && map.CharMap[coo.X - 1, coo.Y] != 'C')
+                coordinates.Add(new Coordinate(coo.X - 1, coo.Y));
+            if (coo.Y + 1 < map.M && map.CharMap[coo.X, coo.Y + 1] != '#' && map.CharMap[coo.X, coo.Y + 1] != 'C')
+                coordinates.Add(new Coordinate(coo.X, coo.Y + 1));
+            if (coo.Y - 1 >= 0 && map.CharMap[coo.X, coo.Y - 1] != '#' && map.CharMap[coo.X, coo.Y - 1] != 'C')
+                coordinates.Add(new Coordinate(coo.X, coo.Y - 1));
+
+            //Diagonal
+            if (coo.X + 1 < map.N && coo.Y + 1 < map.M && map.CharMap[coo.X + 1, coo.Y + 1] != '#' && map.CharMap[coo.X + 1, coo.Y + 1] != 'C')
+                coordinates.Add(new Coordinate(coo.X + 1, coo.Y + 1));
+            if (coo.X - 1 >= 0 && coo.Y - 1 >= 0 && map.CharMap[coo.X - 1, coo.Y - 1] != '#' && map.CharMap[coo.X - 1, coo.Y - 1] != 'C')
+                coordinates.Add(new Coordinate(coo.X - 1, coo.Y - 1));
+            if (coo.X + 1 < map.M && coo.Y - 1 >= 0 && map.CharMap[coo.X + 1, coo.Y - 1] != '#' && map.CharMap[coo.X + 1, coo.Y - 1] != 'C')
+                coordinates.Add(new Coordinate(coo.X + 1, coo.Y - 1));
+            if (coo.X - 1 >= 0 && coo.Y + 1 < map.M && map.CharMap[coo.X - 1, coo.Y + 1] != '#' && map.CharMap[coo.X - 1, coo.Y + 1] != 'C')
+                coordinates.Add(new Coordinate(coo.X - 1, coo.Y + 1));
+
+            return coordinates;
+        }
+
+        //Check if coordinate already in list
+        public bool IsCooInList(List<Coordinate> coordinates, Coordinate coo)
+        {
+            foreach (var c in coordinates)
+            {
+                if (c.X == coo.X && c.Y == coo.Y)
+                    return true;
+            }
+            return false;
+        }
+
     }
 }

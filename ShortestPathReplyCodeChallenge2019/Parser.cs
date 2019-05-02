@@ -35,8 +35,6 @@ namespace ShortestPathReplyCodeChallenge2019
                     customers.Add(new Customer(i, new Coordinate(Convert.ToInt32(customer_arr[0]), Convert.ToInt32(customer_arr[1])), Convert.ToInt32(customer_arr[2])));
                 }
 
-                customers.OrderByDescending(o => o.Reward).ToList();
-
                 //draw char, value and cell map
                 map = new Map(n, m, c, r, customers);
 
@@ -49,6 +47,11 @@ namespace ShortestPathReplyCodeChallenge2019
                         map.CharMap[j, i] = map_arr[j];
                         map.IntMap[j, i] = GetCost(map_arr[j]);
                     }
+                }
+
+                foreach (var cus in map.Customers)
+                {
+                    cus.RealReward = cus.Reward - map.IntMap[cus.Coo.X, cus.Coo.Y];
                 }
             }
 
