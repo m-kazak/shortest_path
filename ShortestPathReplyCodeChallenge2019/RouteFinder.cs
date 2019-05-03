@@ -34,16 +34,16 @@ namespace ShortestPathReplyCodeChallenge2019
             return routes;
         }
 
-        //Find route from all customers to all customers
-        public List<Route> FindRoutes(Map map, List<Customer> customers)
+        //Find routes from all customers to all customers
+        public List<Route> FindCustomerRoutes(Map map)
         {
             List<Route> routes = new List<Route>();
-            foreach (var cus in customers)
+            foreach (var cus in map.Customers)
             {
                 var cells = finder.DrawCellMap(map, cus.Coo);
 
                 List<Path> paths = new List<Path>();
-                foreach (var c in customers)
+                foreach (var c in map.Customers)
                 {
                     var coos = finder.RestoreWay(cells, c, cus.Coo);
                     if (coos.Count > 1)
@@ -54,6 +54,38 @@ namespace ShortestPathReplyCodeChallenge2019
             }
 
             return routes;
+        }
+
+        //Getting list of routes that joined
+        public List<List<Route>> GetJoinRoutes(List<Route> routes)
+        {
+            List<List<Route>> joined_routes = new List<List<Route>>();
+
+            foreach (var rr in routes)
+            {
+                bool found = false;
+                foreach (var jr in joined_routes)
+                {
+                    if (jr.FindIndex(r => r == rr) > -1)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found)
+                    continue;
+
+                List<Route> temp_routes = new List<Route>();
+                foreach (var p in rr.Paths)
+                {
+                    temp_routes.Add(routes.Find(r => r.Office.X == p.Way.Last().X && r.Office.Y == p.Way.Last().Y));
+                }
+
+                temp_routes.Add(rr);
+                joined_routes.Add(temp_routes);
+            }
+
+            return joined_routes;
         }
 
         //Find approximately coordinates
@@ -160,7 +192,40 @@ namespace ShortestPathReplyCodeChallenge2019
                 return false;
         }
 
-        
+        //Splut tree in specific number of branches
+        public List<List<Section>> SplitTree(List<Section> tree, int division)
+        {
+            List<List<Section>> split_tree = new List<List<Section>>();
+            split_tree.Add(tree);
+            List<Section> temp_tree = null;
+
+            for (int i = 1; i < division; i++)
+            {
+                int temp_cost = int.MinValue;
+                foreach (var st in split_tree)
+                {
+                    if (temp_cost < st.OrderByDescending(s => s.Cost).First().Cost)
+                    {
+                        temp_cost = st.OrderByDescending(s => s.Cost).First().Cost;
+                        temp_tree = st;
+                    }
+                }
+
+                var branches = SplitTree(temp_tree);
+
+                split_tree.Remove(temp_tree);
+
+                foreach (var b in branches)
+                {
+                    split_tree.Add(b);
+                }
+                
+            }
+
+            return split_tree;
+        }
+
+        //Splitting tree into 2 branches
         public List<List<Section>> SplitTree(List<Section> tree)
         {
             List<Section> left_branch = new List<Section>();
@@ -173,7 +238,8 @@ namespace ShortestPathReplyCodeChallenge2019
             //Building left branch
             foreach (var t in tree)
             {
-                if (IsCooEqual(weak_section.A, t.B))
+                if (t != weak_section)
+                    if (IsCooEqual(weak_section.A, t.B) || IsCooEqual(weak_section.A, t.A))
                     left_branch.Add(t);
             }
 
@@ -184,8 +250,9 @@ namespace ShortestPathReplyCodeChallenge2019
                 {
                     foreach (var t in tree)
                     {
-                        if (IsCooEqual(lb.A, t.B))
-                            temp_branch.Add(t);
+                        if (t != weak_section)
+                            if (IsCooEqual(lb.A, t.B) || (IsCooEqual(lb.A, t.A) && !IsSectionInList(left_branch, t)))
+                                temp_branch.Add(t);
                     }
                 }
 
@@ -201,8 +268,9 @@ namespace ShortestPathReplyCodeChallenge2019
             //Building right branch
             foreach (var t in tree)
             {
-                if (IsCooEqual(weak_section.B, t.A))
-                    right_branch.Add(t);
+                if (t != weak_section)
+                    if (IsCooEqual(weak_section.B, t.A) || IsCooEqual(weak_section.B, t.B))
+                        right_branch.Add(t);
             }
 
             while (true)
@@ -212,8 +280,9 @@ namespace ShortestPathReplyCodeChallenge2019
                 {
                     foreach (var t in tree)
                     {
-                        if (IsCooEqual(lb.B, t.A))
-                            temp_branch.Add(t);
+                        if (t != weak_section)
+                            if (IsCooEqual(lb.B, t.A) || (IsCooEqual(lb.B, t.B) && !IsSectionInList(right_branch, t)))
+                                temp_branch.Add(t);
                     }
                 }
 

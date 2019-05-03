@@ -42,9 +42,17 @@ namespace ShortestPathReplyCodeChallenge2019
             Map map = parser.GetParsedMap(fileName + ".txt");
             RouteFinder finder = new RouteFinder();
 
-            var rr = finder.FindRoutes(map, map.Customers);
+            var rr = finder.FindCustomerRoutes(map);
+            var jr = finder.GetJoinRoutes(rr);
+
+            foreach (var j in jr)
+            {
+                Console.WriteLine(j.Count);
+            }
+
+            /*
             var tree = finder.GetOptimalTree(rr);
-            var split_tree = finder.SplitTree(tree);
+            var split_tree = finder.SplitTree(tree, 3);
 
             foreach (var r in rr)
             {
@@ -66,7 +74,7 @@ namespace ShortestPathReplyCodeChallenge2019
                 {
                     Console.WriteLine("A:{0} {1} B:{2} {3} Cost:{4}", t.A.X, t.A.Y, t.B.X, t.B.Y, t.Cost);
                 }
-            }
+            }*/
         }
 
         //2nd score. Locate near rewardest and try reach others
