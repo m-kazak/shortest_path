@@ -10,15 +10,31 @@ namespace ShortestPathReplyCodeChallenge2019
     {
         static void Main(string[] args)
         {
-            RunProgram("1_victoria_lake");
-            RunProgram("2_himalayas");
-            RunProgram("3_budapest");
-            RunProgram("4_manhattan");
-            RunProgram("5_oceania");
+            RunProgram("test");
+            //RunProgram("1_victoria_lake");
+            //RunProgram("2_himalayas");
+            //RunProgram("3_budapest");
+            //RunProgram("4_manhattan");
+            //RunProgram("5_oceania");
+
+            /*
+            List<Coordinate> ll = new List<Coordinate>();
+            ll.Add(new Coordinate(1,1));
+
+            Path pp = new Path(ll, new Customer(1, new Coordinate(1, 1), 1), 1);
+
+            List<Coordinate> lc = new List<Coordinate>();
+            lc.Add(pp.Way.First());
+
+            pp = null;
+            ll.Clear();
+
+            Console.WriteLine(lc[0].X);*/
 
             Console.WriteLine("Completed! Press any key");
             Console.ReadLine();
         }
+
 
         static public void RunProgram(String fileName)
         {
@@ -26,7 +42,29 @@ namespace ShortestPathReplyCodeChallenge2019
             Map map = parser.GetParsedMap(fileName + ".txt");
             RouteFinder finder = new RouteFinder();
 
-            //map.DrawCharMap();
+            var rr = finder.FindRoutes(map, map.Customers);
+            var tree = finder.GetOptimalTree(rr);
+
+            foreach (var r in rr)
+            {
+                foreach (var p in r.Paths)
+                {
+                    Console.WriteLine("{0} {1} {2}", r.Office.X, r.Office.Y, p.GetDirection());
+                }
+            }
+
+            foreach (var t in tree)
+            {
+                Console.WriteLine("A:{0} {1} B:{2} {3} Cost:{4}",t.A.X,t.A.Y,t.B.X,t.B.Y,t.Cost);
+            }
+        }
+
+        //2nd score. Locate near rewardest and try reach others
+        static public void RunProgram1(String fileName)
+        {
+            Parser parser = new Parser();
+            Map map = parser.GetParsedMap(fileName + ".txt");
+            RouteFinder finder = new RouteFinder();
 
             var r = finder.FindRoutes(map);
 
