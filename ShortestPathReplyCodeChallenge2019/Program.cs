@@ -44,18 +44,28 @@ namespace ShortestPathReplyCodeChallenge2019
 
             var rr = finder.FindRoutes(map, map.Customers);
             var tree = finder.GetOptimalTree(rr);
+            var split_tree = finder.SplitTree(tree);
 
             foreach (var r in rr)
             {
                 foreach (var p in r.Paths)
                 {
-                    Console.WriteLine("{0} {1} {2}", r.Office.X, r.Office.Y, p.GetDirection());
+                    Console.WriteLine("{0} {1} {2} {3}", r.Office.X, r.Office.Y, p.GetDirection(),p.Cost);
                 }
             }
 
             foreach (var t in tree)
             {
-                Console.WriteLine("A:{0} {1} B:{2} {3} Cost:{4}",t.A.X,t.A.Y,t.B.X,t.B.Y,t.Cost);
+                Console.WriteLine("A:{0} {1} B:{2} {3} Cost:{4}", t.A.X, t.A.Y, t.B.X, t.B.Y, t.Cost);
+            }
+            Console.WriteLine("************");
+            foreach (var st in split_tree)
+            {
+                Console.WriteLine("-------------");
+                foreach (var t in st)
+                {
+                    Console.WriteLine("A:{0} {1} B:{2} {3} Cost:{4}", t.A.X, t.A.Y, t.B.X, t.B.Y, t.Cost);
+                }
             }
         }
 

@@ -152,7 +152,7 @@ namespace ShortestPathReplyCodeChallenge2019
         }
 
         //Compare 2 coordinates
-        public  bool IsCooEqual(Coordinate a, Coordinate b)
+        public bool IsCooEqual(Coordinate a, Coordinate b)
         {
             if (a.X == b.X && a.Y == b.Y)
                 return true;
@@ -160,7 +160,82 @@ namespace ShortestPathReplyCodeChallenge2019
                 return false;
         }
 
+        
+        public List<List<Section>> SplitTree(List<Section> tree)
+        {
+            List<Section> left_branch = new List<Section>();
+            List<Section> right_branch = new List<Section>();
+            List<Section> temp_branch = new List<Section>();
+            List<List<Section>> split_tree = new List<List<Section>>();
 
+            Section weak_section = tree.OrderByDescending(t => t.Cost).First();
+
+            //Building left branch
+            foreach (var t in tree)
+            {
+                if (IsCooEqual(weak_section.A, t.B))
+                    left_branch.Add(t);
+            }
+
+            while (true)
+            {
+                temp_branch.Clear();
+                foreach (var lb in left_branch)
+                {
+                    foreach (var t in tree)
+                    {
+                        if (IsCooEqual(lb.A, t.B))
+                            temp_branch.Add(t);
+                    }
+                }
+
+                if (temp_branch.Count == 0)
+                    break;
+
+                foreach (var t in temp_branch)
+                {
+                    left_branch.Add(t);
+                }
+            }
+
+            //Building right branch
+            foreach (var t in tree)
+            {
+                if (IsCooEqual(weak_section.B, t.A))
+                    right_branch.Add(t);
+            }
+
+            while (true)
+            {
+                temp_branch.Clear();
+                foreach (var lb in right_branch)
+                {
+                    foreach (var t in tree)
+                    {
+                        if (IsCooEqual(lb.B, t.A))
+                            temp_branch.Add(t);
+                    }
+                }
+
+                if (temp_branch.Count == 0)
+                    break;
+
+                foreach (var t in temp_branch)
+                {
+                    right_branch.Add(t);
+                }
+            }
+
+            if (left_branch.Count == 0)
+                left_branch.Add(new Section(weak_section.A, weak_section.A, 0));
+            if (right_branch.Count == 0)
+                right_branch.Add(new Section(weak_section.B, weak_section.B, 0));
+
+            split_tree.Add(left_branch);
+            split_tree.Add(right_branch);
+
+            return split_tree;
+        }
 
         //NOT USING
 
