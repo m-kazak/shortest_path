@@ -11,12 +11,14 @@ namespace ShortestPathReplyCodeChallenge2019
         public Coordinate A { get; }
         public Coordinate B { get; }
         public int Cost { get; }
+        public List<Coordinate> Way { get; }
 
-        public Section(Coordinate a, Coordinate b, int cost)
+        public Section(Coordinate a, Coordinate b, int cost, List<Coordinate> way)
         {
             A = a;
             B = b;
             Cost = cost;
+            Way = way;
         }
     }
 }

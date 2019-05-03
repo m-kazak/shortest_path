@@ -10,38 +10,34 @@ namespace ShortestPathReplyCodeChallenge2019
     {
         static void Main(string[] args)
         {
-            RunProgram("test");
+            //RunProgram("test");
             //RunProgram("1_victoria_lake");
             //RunProgram("2_himalayas");
             //RunProgram("3_budapest");
-            //RunProgram("4_manhattan");
+            RunProgram("4_manhattan");
             //RunProgram("5_oceania");
-
-            /*
-            List<Coordinate> ll = new List<Coordinate>();
-            ll.Add(new Coordinate(1,1));
-
-            Path pp = new Path(ll, new Customer(1, new Coordinate(1, 1), 1), 1);
-
-            List<Coordinate> lc = new List<Coordinate>();
-            lc.Add(pp.Way.First());
-
-            pp = null;
-            ll.Clear();
-
-            Console.WriteLine(lc[0].X);*/
 
             Console.WriteLine("Completed! Press any key");
             Console.ReadLine();
         }
 
 
-        static public void RunProgram(String fileName)
+        static public void Test(String fileName)
         {
             Parser parser = new Parser();
             Map map = parser.GetParsedMap(fileName + ".txt");
             RouteFinder finder = new RouteFinder();
 
+            var coos = finder.FindCoordinates(map);
+
+            foreach (var coo in coos)
+            {
+                Console.WriteLine("{0} {1}",coo.X,coo.Y);
+            }
+
+            
+
+            /*
             var rr = finder.FindCustomerRoutes(map);
             var jr = finder.GetJoinRoutes(rr);
 
@@ -77,6 +73,26 @@ namespace ShortestPathReplyCodeChallenge2019
             }*/
         }
 
+        //Optimal tree plus group of branches
+        static public void RunProgram(String fileName)
+        {
+            Parser parser = new Parser();
+            Map map = parser.GetParsedMap(fileName + ".txt");
+            RouteFinder finder = new RouteFinder();
+
+            var routes = finder.GetOptimalRoutes(map);
+
+            int total = 0;
+            foreach (var route in routes)
+            {
+                total += route.Reward;
+            }
+
+            Console.WriteLine(total);
+
+            Output.OutputFile(routes, fileName + "_answer.txt");
+        }
+
         //2nd score. Locate near rewardest and try reach others
         static public void RunProgram1(String fileName)
         {
@@ -84,7 +100,7 @@ namespace ShortestPathReplyCodeChallenge2019
             Map map = parser.GetParsedMap(fileName + ".txt");
             RouteFinder finder = new RouteFinder();
 
-            var r = finder.FindRoutes(map);
+            var r = finder.FindRoutesAprox(map);
 
             Output.OutputFile(r, fileName + "_answer.txt");
         }

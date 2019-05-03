@@ -10,28 +10,164 @@ namespace ShortestPathReplyCodeChallenge2019
     {
         private PathFinder finder = new PathFinder();
 
-        //Find routes from approximately coordinates
-        public List<Route> FindRoutes(Map map)
+        //CHoose optinal routes to maximaze score and reach all customers
+        public List<Route> GetOptimalRoutes(Map map)
         {
-            List<Coordinate> coordinates = FindAproxCoos(map);
+            List<Route> routes = FindRoutesOptimal(map);
+            List<Route> final_routes = new List<Route>();
+            
+            List<Customer> reached_customers = new List<Customer>();
+            List<Customer> unreached_customers = new List<Customer>();
+
+            foreach (var r in routes)
+            {
+                List<Path> paths = new List<Path>();
+                foreach (var p in r.Paths)
+                {
+                    if (p.Reward >= 0)
+                    {
+                        paths.Add(new Path(p.Way, p.Customer, p.Cost));
+                        reached_customers.Add(p.Customer);
+                    }
+                }
+                final_routes.Add(new Route(r.Office, paths));
+            }
+            
+            foreach (var cus in map.Customers)
+            {
+                if (reached_customers.FindIndex(c => c.Id == cus.Id) == -1)
+                    unreached_customers.Add(cus);
+            }
+
+            foreach (var uc in unreached_customers)
+            {
+                Route temp_route = null;
+                int temp_reward = int.MinValue;
+                List<Path> paths = new List<Path>();
+                foreach (var rr in routes)
+                {
+                    Path path = rr.Paths.Find(p => p.Customer.Id == uc.Id);
+                    if (path != null)
+                        if (temp_reward < path.Reward)
+                        {
+                            paths.Clear();
+                            paths.Add(path);
+                            temp_reward = path.Reward;
+                            temp_route = new Route(path.Way.First(), paths);
+                        }
+                }
+
+                final_routes.Add(temp_route);
+            }
+
+            return final_routes;
+        }
+
+        //Find routes from approximately coordinates. 2nd place in scoreboard
+        public List<Route> FindRoutesOptimal(Map map)
+        {
+            List<Coordinate> coordinates = FindCoordinates(map);
             List<Route> routes = new List<Route>();
 
             foreach (var coo in coordinates)
             {
-                var cells = finder.DrawCellMap(map, coo);
+                routes.Add(GetRoute(map, coo));
+            }
 
-                List<Path> paths = new List<Path>();
-                foreach (var cus in map.Customers)
+            while (map.ReplyCount > routes.Count)
+            {
+                int temp_value = int.MinValue;
+                Coordinate coordinate = null;
+                var route = routes.OrderByDescending(r => r.Reward).First();
+                foreach (var coo in finder.OneStepCoordinates(map, route.Office))
                 {
-                    var coos = finder.RestoreWay(cells, cus, coo);
-                    if (coos.Count > 0 && cus.Reward - cells[cus.Coo.X, cus.Coo.Y].Cost > 0)
-                        paths.Add(new Path(coos, cus, cells[cus.Coo.X, cus.Coo.Y].Cost));
+                    if (map.IntMap[coo.X, coo.Y] > temp_value)
+                    {
+                        temp_value = map.IntMap[coo.X, coo.Y];
+                        coordinate = new Coordinate(coo.X, coo.Y);
+                    }
                 }
 
-                routes.Add(new Route(coo, paths));
+                routes.Add(GetRoute(map, coordinate));
             }
 
             return routes;
+        }
+
+        // Get route from coordinate
+        public Route GetRoute(Map map, Coordinate coordinate)
+        {
+            var cells = finder.DrawCellMap(map, coordinate);
+
+            List<Path> paths = new List<Path>();
+            foreach (var cus in map.Customers)
+            {
+                var coos = finder.RestoreWay(cells, cus, coordinate);
+                paths.Add(new Path(coos, cus, cells[cus.Coo.X, cus.Coo.Y].Cost));
+            }
+
+            return new Route(coordinate, paths);
+        }
+
+        //Find more presize coordinate for offices
+        public List<Coordinate> FindCoordinates(Map map)
+        {
+            List<Coordinate> final_coordinates = new List<Coordinate>();
+            List<Route> routes = FindCustomerRoutes(map);
+
+            List<List<Route>> joined_routes = GetJoinRoutes(routes);
+
+            int density = 0;
+            List<double> reply_percent = new List<double>();
+
+            foreach (var jr in joined_routes)
+            {
+                density = jr.Count / map.CustomerCount * map.ReplyCount;
+                if (density == 0)
+                    density++;
+
+                List<Section> tree = GetOptimalTree(jr);
+
+                List<List<Section>> branches = SplitTree(tree, density);
+
+                Coordinate coo = null;
+
+                foreach (var b in branches)
+                {
+                    int temp_value = int.MinValue;
+                    coo = null;
+                    foreach (var bb in b)
+                    {
+                        foreach (var w in bb.Way)
+                        {
+                            if (map.CharMap[w.X, w.Y] != 'C' && map.IntMap[w.X, w.Y] > temp_value)
+                            {
+                                temp_value = map.IntMap[w.X, w.Y];
+                                coo = new Coordinate(w.X, w.Y);
+                            }
+                        }
+                    }
+                    if (coo != null && !finder.IsCooInList(final_coordinates,coo))
+                        final_coordinates.Add(coo);
+
+                    if (coo == null)
+                    {
+                        var middle_branch = b[b.Count / 2];
+                        var near_coos = finder.OneStepCoordinates(map, middle_branch.A);
+                        foreach (var nc in near_coos)
+                        {
+                            if (map.IntMap[nc.X,nc.Y] > temp_value)
+                            {
+                                temp_value = map.IntMap[nc.X, nc.Y];
+                                coo = new Coordinate(nc.X, nc.Y);
+                            }
+                        }
+                        if (!finder.IsCooInList(final_coordinates, coo))
+                            final_coordinates.Add(coo);
+                    }
+                }
+            }
+            return final_coordinates;
         }
 
         //Find routes from all customers to all customers
@@ -121,12 +257,20 @@ namespace ShortestPathReplyCodeChallenge2019
             List<Section> sections = new List<Section>();
             List<Coordinate> coordinates = new List<Coordinate>();
 
-            Path path = routes.First().Paths.OrderBy(p=>p.Cost).First();
+            if (routes.First().Paths.Count == 0)
+            {
+                List<Coordinate> temp_coos = new List<Coordinate>();
+                temp_coos.Add(routes.First().Office);
+                sections.Add(new Section(routes.First().Office, routes.First().Office, routes.First().Reward, temp_coos));
+                return sections;
+            }
 
-            sections.Add(new Section(path.Way.First(), path.Way.Last(), path.Cost));
+            Path path = routes.First().Paths.OrderBy(p => p.Cost).First();
+
+            sections.Add(new Section(path.Way.First(), path.Way.Last(), path.Cost, path.Way));
             coordinates.Add(path.Way.First());
             coordinates.Add(path.Way.Last());
-            
+
             while (true)
             {
                 if (coordinates.Count == routes.Count)
@@ -135,7 +279,7 @@ namespace ShortestPathReplyCodeChallenge2019
                 int temp_cost = int.MaxValue;
                 foreach (var c in coordinates)
                 {
-                    var paths = routes.Find(r => r.Office.X == c.X && r.Office.Y == c.Y).Paths.OrderBy(p=>p.Cost);
+                    var paths = routes.Find(r => r.Office.X == c.X && r.Office.Y == c.Y).Paths.OrderBy(p => p.Cost);
                     foreach (var p in paths)
                     {
                         if (!finder.IsCooInList(coordinates, p.Way.Last()) && !IsSectionInList(sections, p.Way.First(), p.Way.Last()))
@@ -150,7 +294,7 @@ namespace ShortestPathReplyCodeChallenge2019
                     }
                 }
 
-                sections.Add(new Section(path.Way.First(), path.Way.Last(), path.Cost));
+                sections.Add(new Section(path.Way.First(), path.Way.Last(), path.Cost, path.Way));
                 coordinates.Add(path.Way.Last());
             }
 
@@ -225,7 +369,7 @@ namespace ShortestPathReplyCodeChallenge2019
             return split_tree;
         }
 
-        //Splitting tree into 2 branches
+        //Splitting tree into 2 branches is possible
         public List<List<Section>> SplitTree(List<Section> tree)
         {
             List<Section> left_branch = new List<Section>();
@@ -240,7 +384,7 @@ namespace ShortestPathReplyCodeChallenge2019
             {
                 if (t != weak_section)
                     if (IsCooEqual(weak_section.A, t.B) || IsCooEqual(weak_section.A, t.A))
-                    left_branch.Add(t);
+                        left_branch.Add(t);
             }
 
             while (true)
@@ -250,8 +394,8 @@ namespace ShortestPathReplyCodeChallenge2019
                 {
                     foreach (var t in tree)
                     {
-                        if (t != weak_section)
-                            if (IsCooEqual(lb.A, t.B) || (IsCooEqual(lb.A, t.A) && !IsSectionInList(left_branch, t)))
+                        if (t != weak_section && !IsSectionInList(left_branch, t))
+                            if (IsCooEqual(lb.A, t.B) || (IsCooEqual(lb.A, t.A)))
                                 temp_branch.Add(t);
                     }
                 }
@@ -280,8 +424,8 @@ namespace ShortestPathReplyCodeChallenge2019
                 {
                     foreach (var t in tree)
                     {
-                        if (t != weak_section)
-                            if (IsCooEqual(lb.B, t.A) || (IsCooEqual(lb.B, t.B) && !IsSectionInList(right_branch, t)))
+                        if (t != weak_section && !IsSectionInList(right_branch, t))
+                            if (IsCooEqual(lb.B, t.A) || (IsCooEqual(lb.B, t.B)))
                                 temp_branch.Add(t);
                     }
                 }
@@ -296,9 +440,9 @@ namespace ShortestPathReplyCodeChallenge2019
             }
 
             if (left_branch.Count == 0)
-                left_branch.Add(new Section(weak_section.A, weak_section.A, 0));
+                left_branch.Add(new Section(weak_section.A, weak_section.A, 0, weak_section.Way));
             if (right_branch.Count == 0)
-                right_branch.Add(new Section(weak_section.B, weak_section.B, 0));
+                right_branch.Add(new Section(weak_section.B, weak_section.B, 0, weak_section.Way));
 
             split_tree.Add(left_branch);
             split_tree.Add(right_branch);
@@ -306,10 +450,36 @@ namespace ShortestPathReplyCodeChallenge2019
             return split_tree;
         }
 
+        //OLD
+
+        //Find routes from approximately coordinates. 2nd place in scoreboard
+        public List<Route> FindRoutesAprox(Map map)
+        {
+            List<Coordinate> coordinates = FindAproxCoos(map);
+            List<Route> routes = new List<Route>();
+
+            foreach (var coo in coordinates)
+            {
+                var cells = finder.DrawCellMap(map, coo);
+
+                List<Path> paths = new List<Path>();
+                foreach (var cus in map.Customers)
+                {
+                    var coos = finder.RestoreWay(cells, cus, coo);
+                    if (coos.Count > 0 && cus.Reward - cells[cus.Coo.X, cus.Coo.Y].Cost > 0)
+                        paths.Add(new Path(coos, cus, cells[cus.Coo.X, cus.Coo.Y].Cost));
+                }
+
+                routes.Add(new Route(coo, paths));
+            }
+
+            return routes;
+        }
+
         //NOT USING
 
         //Find routes to all accessable customers from all coordinates
-        public List<Route> FindRoutesOld(Map map, List<Customer> customers)
+        public List<Route> FindRoutesUseless(Map map, List<Customer> customers)
         {
             List<Coordinate> coordinates = map.AvailableCoordinates();
             List<Route> routes = new List<Route>();
